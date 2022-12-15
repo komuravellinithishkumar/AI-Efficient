@@ -1,219 +1,182 @@
 from GenerateGrid import GenerateGrid
-from collections import defaultdict
 import random
 from UtilityFunctions import Utility
 import time
-import Grid as g
-import math
-import copy
-import json
 
 
 class Agent1:
     def __init__(self):
         self.generateGrid = GenerateGrid()
-        self.discount = 0.90
-        # self.nonterminalReward = -0.001
-        self.error = 1e-22
 
-        self.utility = None
+    def moveAgent(self, PositionOfAgent, PositionOfPrey, PositionOfPredator, graph, dist):
 
-    def AgentOperation(self, size):
+        surroundingNodesOfAgent = Utility.getSurroundingNodesOfAParticularNode(graph, PositionOfAgent)
 
-        # graph, path, dist, degree = self.generateGraph.generateGraph(size)
+        PreyDistanceFromNeighbours = []
+        PredatorDistanceFromNeighbours = []
 
-        grid, distance, degree = (g.getGrid(), g.getDistance(), g.getDegree(),)
-        counter = 0
+        presentPreyDistance = dist[PositionOfAgent][PositionOfPrey]
+        presentPredatorDistanc = dist[PositionOfAgent][PositionOfPredator]
 
-        stepsCount = 0
-        for _ in range(100):
+        for index, elem in enumerate(surroundingNodesOfAgent):
+            PreyDistanceFromNeighbours.append(dist[elem][PositionOfPrey])
+            PredatorDistanceFromNeighbours.append(dist[elem][PositionOfPredator])
 
-            positionofAgent = random.randint(0, size - 1)
-            positionofPrey = random.randint(0, size - 1)
-            positionofpredator = random.randint(0, size - 1)
-            while positionofpredator == positionofAgent:
-                positionofpredator = random.randint(0, size - 1)
+        #Move the Agent based on the priorities as mentioned in the write-up.
 
-            result, line, steps, positionofAgent, positionofpredator, positionofPrey = self.agent1(
-                grid, distance, degree, positionofAgent, positionofPrey, positionofpredator, size, 100, False)
+        availableMovesForAgent = []
+        for i in range(len(PredatorDistanceFromNeighbours)):
+            if (
+                PreyDistanceFromNeighbours[i] < presentPreyDistance
+                and PredatorDistanceFromNeighbours[i] > presentPredatorDistanc
+            ):
+                availableMovesForAgent.append(surroundingNodesOfAgent[i])
 
-            print(result, positionofAgent, positionofpredator, positionofPrey)
-            counter += result
-            stepsCount += steps
+        #If we get a move based on the first priority itself, return that move.
 
-        return counter, stepsCount / 100
+        countOfAvailablMovesForAgent = len(availableMovesForAgent)
 
-    def agent1(self, grid, distance, degree, positionofAgent, positionofPrey, positionofpredator, size=50, iteratative=100, visualize=False,):
+        if countOfAvailablMovesForAgent > 0:
+            return random.choice(availableMovesForAgent)
 
-        if self.utility is None:
 
-            self.utility = self.valueIteration(
-                grid, distance, degree, positionofAgent, positionofPrey, positionofpredator, size)
+        #Other-wise, explore other priorities.
 
-            with open("test.txt", "w") as file:
+        for i in range(len(PredatorDistanceFromNeighbours)):
+            if (
+                PreyDistanceFromNeighbours[i] < presentPreyDistance
+                and PredatorDistanceFromNeighbours[i] == presentPredatorDistanc
+            ):
+                availableMovesForAgent.append(surroundingNodesOfAgent[i])
+    
 
-                file.write(json.dumps(self.utility))
+        countOfAvailablMovesForAgent = len(availableMovesForAgent)
 
-            # print(self.utility)?
+        if countOfAvailablMovesForAgent > 0:
+            return random.choice(availableMovesForAgent)
 
-        while iteratative > 0:
 
-            if positionofAgent == positionofpredator:
-                return False, 3, 100 - iteratative, positionofAgent, positionofpredator, positionofPrey
 
-            if positionofAgent == positionofPrey:
-                return True, 0, 100 - iteratative, positionofAgent, positionofpredator, positionofPrey
 
-            agentSorroundingNodes = Utility.getSurroundingNodesOfAParticularNode(
-                grid, positionofAgent)
+        for i in range(len(PredatorDistanceFromNeighbours)):
+            if (
+                PreyDistanceFromNeighbours[i] == presentPreyDistance
+                and PredatorDistanceFromNeighbours[i] > presentPredatorDistanc
+            ):
+                availableMovesForAgent.append(surroundingNodesOfAgent[i])
 
-            maxValue = math.inf
-            maxNeighbour = 1
+        countOfAvailablMovesForAgent = len(availableMovesForAgent)
 
-            for agent in agentSorroundingNodes:
+        if countOfAvailablMovesForAgent > 0:
+            return random.choice(availableMovesForAgent)
 
-                val = self.utility[agent][positionofPrey][positionofpredator]
 
-                if val < maxValue:
-                    maxValue = val
-                    maxNeighbour = agent
 
-            positionofAgent = maxNeighbour
 
-            if positionofAgent == positionofpredator:
-                return False, 4, 100 - iteratative, positionofAgent, positionofpredator, positionofPrey
+        for i in range(len(PredatorDistanceFromNeighbours)):
+            if (
+                PreyDistanceFromNeighbours[i] == presentPreyDistance
+                and PredatorDistanceFromNeighbours[i] == presentPredatorDistanc
+            ):
+                availableMovesForAgent.append(surroundingNodesOfAgent[i])
+
+
+        countOfAvailablMovesForAgent = len(availableMovesForAgent)
+
+        if countOfAvailablMovesForAgent > 0:
+            return random.choice(availableMovesForAgent)
+
+
+
+
+        for i in range(len(PredatorDistanceFromNeighbours)):
+            if PredatorDistanceFromNeighbours[i] > presentPredatorDistanc:
+                availableMovesForAgent.append(surroundingNodesOfAgent[i])
+
+
+        countOfAvailablMovesForAgent = len(availableMovesForAgent)
+
+        if countOfAvailablMovesForAgent > 0:
+            return random.choice(availableMovesForAgent)
+
+
+
+
+        for i in range(len(PredatorDistanceFromNeighbours)):
+            if PredatorDistanceFromNeighbours[i] == presentPredatorDistanc:
+                availableMovesForAgent.append(surroundingNodesOfAgent[i])
+
+
+        countOfAvailablMovesForAgent = len(availableMovesForAgent)
+
+        if countOfAvailablMovesForAgent > 0:
+            return random.choice(availableMovesForAgent)
+
+        return PositionOfAgent
+
+    def agent1(self, graph, path, dist, PositionOfAgent, PositionOfPrey, PositionOfPredator, totalRuns=100,):
+
+        while totalRuns > 0:
+
+            print(PositionOfAgent, PositionOfPredator, PositionOfPrey)
+
+            if PositionOfAgent == PositionOfPredator:
+                return False, 3, 100 - totalRuns, PositionOfAgent, PositionOfPrey
+
+            if PositionOfAgent == PositionOfPrey:
+                return True, 0, 100 - totalRuns, PositionOfAgent, PositionOfPrey
+
+            # move agent
+            PositionOfAgent = self.moveAgent(PositionOfAgent, PositionOfPrey, PositionOfPredator, graph, dist)
+
+            # check predator
+            if PositionOfAgent == PositionOfPredator:
+                return False, 4, 100 - totalRuns, PositionOfAgent, PositionOfPrey
 
             # check prey
-            if positionofAgent == positionofPrey:
-                return True, 1, 100 - iteratative, positionofAgent, positionofpredator, positionofPrey
+            if PositionOfAgent == PositionOfPrey:
+                return True, 1, 100 - totalRuns, PositionOfAgent, PositionOfPrey
 
-            positionofPrey = Utility.movePrey(positionofPrey, grid)
+            # move prey
+            PositionOfPrey = Utility.movePreyInGrid(PositionOfPrey, graph)
 
-            if positionofAgent == positionofPrey:
-                return True, 2, 100 - iteratative, positionofAgent, positionofpredator, positionofPrey
+            if PositionOfAgent == PositionOfPrey:
+                return True, 2, 100 - totalRuns, PositionOfAgent, PositionOfPrey
 
-            positionofpredator = Utility.movePredator(
-                positionofAgent, positionofpredator, grid, distance)
+            # move predator
+            PositionOfPredator = Utility.movePredatorWithoutShortestPath(PositionOfAgent, PositionOfPredator, graph, dist)
 
-            iteratative -= 1
+            totalRuns -= 1
 
-        return False, 5, 100, positionofAgent, positionofpredator, positionofPrey
+        return False, 5, 100, PositionOfAgent, PositionOfPrey
 
-    def valueIteration(self, grid, distance, degree, positionofAgent, positionofPrey, positionofpredator, size=50, iterations=100):
+    def executeAgent(self, gridSize):
 
-        utility = [[[-1 for i in range(size)]
-                    for j in range(size)] for k in range(size)]
-        # i = agent , j = prey k = pred
-        agent, prey, pred = 0, 0, 0
-        while(agent < size):
-            while(prey < size):
-                while(pred < size):
+        grid, path, distanceToGoal, degree = self.generateGrid.generateGraphUtil(gridSize)
 
-                    utility[agent][agent][prey] = 0
-                    utility[agent][prey][pred] = distance[agent][prey]
-                    utility[agent][prey][agent] = math.inf
-                    predatorSorrundingNodes = Utility.getSurroundingNodesOfAParticularNode(
-                        grid, pred)
-                    for neigh in predatorSorrundingNodes:
-                        utility[neigh][prey][pred] = math.inf
+        current = 0
 
-                    pred += 1
-                prey += 1
-            agent += 1
+        NoOfSteps = 0
 
-        a = 0
-        while iterations > 0:
-            print("enteereeedd while looppppp")
-            a += 1
-            error = 0
+        simulationCount = 100
 
-            nextUtility = copy.deepcopy(utility)
+        while(simulationCount > 0):
 
-            # Compute Next Utility
-            # agent, prey, pred = 0, 0, 0
-            # For all the states
-            for agentPosition in range(size):
-                for preyPosition in range(size):
-                    for predPosition in range(size):
-                        nextValue = math.inf
-                        # Compute the utility for all the actions
-                        allPossibleAgentActions = Utility.getSurroundingNodesOfAParticularNode(
-                            grid, agentPosition)
-                        su = 0
-                        for everyNewPossibleAgent in allPossibleAgentActions:
-                            preyActions = Utility.getSurroundingNodesOfAParticularNode(
-                                grid, preyPosition, include=True
-                            )
-                            predActions = Utility.getSurroundingNodesOfAParticularNode(
-                                grid, predPosition)
+            positionOfPredator = random.randint(0, gridSize - 1)
+            positionOfPrey = random.randint(0, gridSize - 1)
+            positionOfAgent = random.randint(0, gridSize - 1)
 
-                            additionOfAllPosibilities = 0
-                            for everyNewPossiblePrey in preyActions:
-                                for everyNewPossiblePred in predActions:
-                                    prob = self.findingProbabilityofNextState(grid, distance, degree, utility, (agentPosition, preyPosition, predPosition), (everyNewPossibleAgent, everyNewPossiblePrey, everyNewPossiblePred),
-                                                                              )
+            answer, line, steps, positionOfAgent, positionOfPrey = self.agent1(
+                grid, 10, distanceToGoal, positionOfAgent, positionOfPrey, positionOfPredator, 100
+            )
 
-                                    additionOfAllPosibilities += (
-                                        prob * utility[everyNewPossibleAgent][everyNewPossiblePrey][everyNewPossiblePred])
+            print(answer, positionOfAgent, positionOfPrey)
 
-                            nextValue = min(
-                                nextValue, additionOfAllPosibilities * self.discount)
-                            # print(nextVal)
-                        #print("agent", agent)
-                        #print("pred", pred)
-                        if agentPosition == predPosition:
-                            reward = math.inf
-                        elif agentPosition == preyPosition:
-                            reward = 0
+            current += answer
+            NoOfSteps += steps
+            simulationCount -= 1
 
-                        else:
-                            reward = 1
-
-                        nextUtility[agentPosition][preyPosition][predPosition] = nextValue + reward
-
-                        if (
-                            utility[agentPosition][preyPosition][predPosition] == math.inf
-                            or nextUtility[agentPosition][preyPosition][predPosition] == math.inf
-                        ):
-
-                            continue
-
-                        error = max(error, abs(
-                            utility[agentPosition][preyPosition][predPosition] - nextUtility[agentPosition][preyPosition][predPosition]),)
-
-            utility = copy.deepcopy(nextUtility)
-            print("Value iteration for", a, error, self.error *
-                  (1 - self.discount) / self.discount, )
-            if error < 10**-15:
-                break
-
-            iterations -= 1
-
-        return utility
-
-    def findingProbabilityofNextState(self, grid, distance, degree, utility, presentState, nextState):
-        """
-        Adding rewards for taking that particular action
-        """
-        agentProbability = 1
-        preyProbability = 1 / (degree[presentState[1]] + 1)
-
-        predatorSorrundingNodes = Utility.getSurroundingNodesOfAParticularNode(
-            grid, presentState[2])
-
-        Sorroundingdict = defaultdict(list)
-        for everyPossiblePredator in predatorSorrundingNodes:
-            Sorroundingdict[distance[everyPossiblePredator]
-                            [nextState[0]]].append(everyPossiblePredator)
-        minimumDistanceList = Sorroundingdict.get(min(Sorroundingdict), [])
-        if nextState[2] in minimumDistanceList:
-            favourablepropability = 0.6 / len(minimumDistanceList)
-            randompropability = 0.4 / degree[presentState[2]]+1
-            predProbability = favourablepropability * randompropability
-        else:
-            predProbability = 0.4 / (degree[presentState[2]] + 1)
-        # print(preyProbability, predProbability,"test")
-        return preyProbability * predProbability
+        return current, NoOfSteps / 100
 
 
 if __name__ == "__main__":
@@ -221,9 +184,9 @@ if __name__ == "__main__":
     agent1 = Agent1()
     counter = 0
     stepsArray = []
-    for _ in range(1):
+    for _ in range(30):
 
-        result, steps = agent1.AgentOperation(50)
+        result, steps = agent1.executeAgent(50)
         counter += result
         stepsArray.append(steps)
-    print(counter, stepsArray)
+    print(counter / 30, stepsArray)

@@ -1,247 +1,150 @@
-import heapq
-
-from pastGenerateGraph import GenerateGraph
-
+from GenerateGrid import GenerateGrid
 import random
-from pastUtilityFunctions import Utility
+from UtilityFunctions import Utility
 import time
 
 
 class Agent2:
     def __init__(self):
-        self.generateGraph = GenerateGraph()
+        self.generateGrid = GenerateGrid()
 
-    def moveAgent_run(self, agentPos, preyPos, predPos, graph, dist):
+    def futurebeliefArray(self, prevBeliefArray, grid, degree, positionOfPrey):
 
-        agentNeighbours = Utility.getNeighbours(graph, agentPos)
+        #The prey can choose to stay in the same node or move to it's neighbours.
 
-        neighboursPreyDistance = []
-        neighboursPredatorDistance = []
+        prevBeliefArrayLength = len(prevBeliefArray)
 
-        currPredDist = dist[agentPos][predPos]
+        newBeliefArray = [None] * prevBeliefArrayLength
 
-        for index, elem in enumerate(agentNeighbours):
-            neighboursPreyDistance.append(dist[elem][preyPos])
-            neighboursPredatorDistance.append(dist[elem][predPos])
+        for k in range(prevBeliefArrayLength):
+            newBeliefArray[k] = 0
 
-        options = []
+        surroundingNodes = Utility.getSurroundingNodesOfAParticularNode(grid, positionOfPrey)
+        surroundingNodes.append(positionOfPrey)
 
-        for i in range(len(neighboursPredatorDistance)):
-            if neighboursPredatorDistance[i] > currPredDist:
-                options.append(agentNeighbours[i])
+        degreeOfPreyNode = degree[positionOfPrey]
 
-        if len(options) > 0:
-            return random.choice(options)
+        prevBeliefValue = prevBeliefArray[positionOfPrey]
 
-        return agentPos
+        probabilitySplit = (prevBeliefValue / (degreeOfPreyNode + 1))
 
-    def moveAgent_1(self, agentPos, preyPos, predPos, graph, dist):
+        for currentNode in surroundingNodes:
+            
+            newBeliefArray[currentNode] = newBeliefArray[currentNode] + probabilitySplit
 
-        agentNeighbours = Utility.getNeighbours(graph, agentPos)
+        return newBeliefArray
 
-        neighboursPreyDistance = []
-        neighboursPredatorDistance = []
+    def calculateWeightFactor(self, PositionOfAgent, preyPos, PositionOfPredator, futurePreyPositions, dist, beliefArray, graph):
+        agentNeighbours = Utility().getSurroundingNodesOfAParticularNode(graph, PositionOfAgent)
 
-        currPreyDist = dist[agentPos][preyPos]
-        currPredDist = dist[agentPos][predPos]
+        weightFactor = {}
+        for n in agentNeighbours:
 
-        for index, elem in enumerate(agentNeighbours):
-            neighboursPreyDistance.append(dist[elem][preyPos])
-            neighboursPredatorDistance.append(dist[elem][predPos])
+            currWeightFactor = 0
+            for i in futurePreyPositions:
 
-        # if(currPredDist>=10):
-        options = []
-        for i in range(len(neighboursPredatorDistance)):
-            if (
-                neighboursPreyDistance[i] < currPreyDist
-                and neighboursPredatorDistance[i] > currPredDist
-            ):
-                options.append(agentNeighbours[i])
+                neighbourPredDsitance = dist[n][PositionOfPredator]
 
-        if len(options) > 0:
-            return random.choice(options)
+                denominator = (neighbourPredDsitance + 0.005) ** 100
 
-        for i in range(len(neighboursPredatorDistance)):
-            if neighboursPredatorDistance[i] > currPredDist:
-                options.append(agentNeighbours[i])
+                currWeightFactor = currWeightFactor + (dist[n][i] * (1 - beliefArray[i])) / denominator
 
-        if len(options) > 0:
-            return random.choice(options)
+            weightFactor[n] = currWeightFactor
 
-        return agentPos
+        return weightFactor
 
-    def moveAgent_prey(self, agentPos, preyPos, predPos, graph, dist):
+    def agent2(self,grid,distance,PositionOfAgent,PositionOfPrey,PositionOfPredator,degree,totalRuns=100,):
 
-        agentNeighbours = Utility.getNeighbours(graph, agentPos)
+        currentRuns = totalRuns
 
-        neighboursPreyDistance = []
-        neighboursPredatorDistance = []
+        for x in range(currentRuns):
 
-        currPreyDist = dist[agentPos][preyPos]
-        currPredDist = dist[agentPos][predPos]
+            if PositionOfAgent == PositionOfPredator:
+                return False, 100 - currentRuns, PositionOfAgent, PositionOfPrey
 
-        for index, elem in enumerate(agentNeighbours):
-            neighboursPreyDistance.append(dist[elem][preyPos])
-            neighboursPredatorDistance.append(dist[elem][predPos])
+            if PositionOfAgent == PositionOfPrey:
+                return True, 100 - currentRuns, PositionOfAgent, PositionOfPrey
 
-        options = []
-        for i in range(len(neighboursPredatorDistance)):
-            if (
-                neighboursPreyDistance[i] < currPreyDist
-                and neighboursPredatorDistance[i] > currPredDist
-            ):
-                options.append(agentNeighbours[i])
+            graphLength = len(grid)
 
-        if len(options) > 0:
-            return random.choice(options)
+            currentBeliefArray = [None] * graphLength
 
-        for i in range(len(neighboursPredatorDistance)):
-            if neighboursPreyDistance[i] < currPreyDist:
-                options.append(agentNeighbours[i])
+            for i in range(graphLength):
+                currentBeliefArray[i] = 0
 
-        if len(options) > 0:
-            return random.choice(options)
+            # If prey is present in a particular node, then the belief value of that particular node becomes 1
 
-        return agentPos
+            currentBeliefArray[PositionOfPrey] = 1
 
-    def moveAgent_2(self, agentPos, preyPos, predPos, graph, dist):
-        agentNeighbours = Utility.getNeighbours(graph, agentPos)
-
-        neighboursPreyDistance = []
-        neighboursPredatorDistance = []
-
-        currPreyDist = dist[agentPos][preyPos]
-        currPredDist = dist[agentPos][predPos]
-
-        for index, elem in enumerate(agentNeighbours):
-            neighboursPreyDistance.append(dist[elem][preyPos])
-            neighboursPredatorDistance.append(dist[elem][predPos])
-
-        if currPreyDist > 5:
-            preyNeighbours = Utility.getNeighbours(graph, preyPos)
-            preyNeighbours.append(preyPos)
-            move_vote = {}
-            for p in range(len(preyNeighbours)):
-                agentPos_sim = self.moveAgent_1(
-                    agentPos, preyPos, predPos, graph, dist)
-                if agentPos_sim in move_vote:
-                    move_vote[agentPos_sim] += 1
-                else:
-                    move_vote[agentPos_sim] = 1
-            max_value = max(move_vote, key=move_vote.get)
-            print(max_value, move_vote, "catching prey")
-            return max_value
-
-        elif currPredDist > 5:
-            preyNeighbours = Utility.getNeighbours(graph, preyPos)
-            preyNeighbours.append(preyPos)
-            move_vote = {}
-            for p in range(len(preyNeighbours)):
-                agentPos_sim = self.moveAgent_prey(
-                    agentPos, p, predPos, graph, dist)
-                if agentPos_sim in move_vote:
-                    move_vote[agentPos_sim] += 1
-                else:
-                    move_vote[agentPos_sim] = 1
-            max_value = max(move_vote, key=move_vote.get)
-            print(max_value, move_vote, "catching prey")
-            return max_value
-        else:
-            preyNeighbours = Utility.getNeighbours(graph, preyPos)
-            preyNeighbours.append(preyPos)
-            move_vote = {}
-            for p in range(len(preyNeighbours)):
-                agentPos_sim = self.moveAgent_run(
-                    agentPos, p, predPos, graph, dist)
-                if agentPos_sim in move_vote:
-                    move_vote[agentPos_sim] += 1
-                else:
-                    move_vote[agentPos_sim] = 1
-            max_value = max(move_vote, key=move_vote.get)
-            print(max_value, move_vote, "running away")
-            return max_value
-
-    def agent2(
-        self, graph, path, dist, agentPos, preyPos, predPos, runs=100, visualize=False
-    ):
-
-        while runs > 0:
-
-            print(agentPos, predPos, preyPos)
-
-            if visualize:
-                # wait for a second
-                Utility.visualizeGrid(graph, agentPos, predPos, preyPos)
-                # time.sleep(10)
-
-            # print(agentPos, preyPos, predPos)
-            if agentPos == predPos:
-                return False, 3, 100 - runs, agentPos, predPos, preyPos
-
-            if agentPos == preyPos:
-                return True, 0, 100 - runs, agentPos, predPos, preyPos
-
-            # move agent
-            agentPos = self.moveAgent_2(
-                agentPos, preyPos, predPos, graph, dist)
-
-            # check pred
-            if agentPos == predPos:
-                return False, 4, 100 - runs, agentPos, predPos, preyPos
-
-            # check prey
-            if agentPos == preyPos:
-                return True, 1, 100 - runs, agentPos, predPos, preyPos
-
-            # move prey
-            preyPos = Utility.movePrey(preyPos, graph)
-
-            if agentPos == preyPos:
-                return True, 2, 100 - runs, agentPos, predPos, preyPos
-
-            # move predator
-            # predPos = Utility.movePredator(agentPos, predPos, path)
-            predPos = Utility.movePredatorWithoutPath(
-                agentPos, predPos, graph, dist)
-
-            runs -= 1
-
-        return False, 5, 100, agentPos, predPos, preyPos
-
-    def executeAgent(self, size):
-
-        graph, path, dist, degree = self.generateGraph.generateGraph(size)
-
-        counter = 0
-
-        stepsCount = 0
-        for _ in range(100):
-
-            agentPos = random.randint(0, size - 1)
-            preyPos = random.randint(0, size - 1)
-            predPos = random.randint(0, size - 1)
-
-            result, line, steps, agentPos, predPos, preyPos = self.agent2(
-                graph, path, dist, agentPos, preyPos, predPos, 100, False
+            futureBeliefArray = self.futurebeliefArray(
+                currentBeliefArray, grid, degree, PositionOfPrey
             )
 
-            print(result, agentPos, predPos, preyPos)
-            counter += result
-            stepsCount += steps
-        # print(self.agent1(graph, path, dist, agentPos, preyPos, predPos))
-        # print(result, line)
+            nextPreyPositions = []
+            for i, j in enumerate(futureBeliefArray):
+                if j != 0:
+                    nextPreyPositions.append(i)
 
-        return counter, stepsCount / 100
+            weightFactorMap = self.calculateWeightFactor(PositionOfAgent,PositionOfPrey,PositionOfPredator,nextPreyPositions,distance,futureBeliefArray,grid,)
+
+            # move agent
+            PositionOfAgent = sorted(weightFactorMap.items(), key=lambda x: x[1])[0][0]
+
+            # check Predator
+            if PositionOfAgent == PositionOfPredator:
+                return False, 100 - currentRuns, PositionOfAgent, PositionOfPrey
+
+            # check prey
+            if PositionOfAgent == PositionOfPrey:
+                return True, 100 - currentRuns, PositionOfAgent, PositionOfPrey
+
+            # move prey
+            PositionOfPrey = Utility.movePreyInGrid(PositionOfPrey, grid)
+
+            if PositionOfAgent == PositionOfPrey:
+                return True, 100 - currentRuns, PositionOfAgent, PositionOfPrey
+
+            PositionOfPredator = Utility.movePredatorWithoutShortestPath(PositionOfAgent, PositionOfPredator, grid, distance)
+
+        return False, 100, PositionOfAgent, PositionOfPrey
+
+    def executeAgent(self, gridSize):
+
+        grid, path, distanceToGoal, degree = self.generateGrid.generateGraphUtil(gridSize)
+
+        current = 0
+
+        NoOfSteps = 0
+
+        simulationCount = 100
+
+        while(simulationCount > 0):
+
+            positionOfPredator = random.randint(0, gridSize - 1)
+            positionOfPrey = random.randint(0, gridSize - 1)
+            positionOfAgent = random.randint(0, gridSize - 1)
+
+            answer, steps, positionOfAgent, positionOfPrey = self.agent2(
+                grid, distanceToGoal, positionOfAgent, positionOfPrey, positionOfPredator, degree, 100
+            )
+
+            print(answer, positionOfAgent, positionOfPrey)
+
+            current += answer
+            NoOfSteps += steps
+            simulationCount -= 1
+
+        return current, NoOfSteps / 100
 
 
 if __name__ == "__main__":
 
-    agent2 = Agent2()
+    agent1 = Agent2()
     counter = 0
     stepsArray = []
     for _ in range(30):
 
-        result, steps = agent2.executeAgent(50)
+        result, steps = agent1.executeAgent(50)
         counter += result
         stepsArray.append(steps)
-    print(counter/30, stepsArray)
+    print(counter / 30, stepsArray)
